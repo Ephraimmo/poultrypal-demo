@@ -1,14 +1,15 @@
 import { initializeApp } from 'firebase/app';
 import { getDatabase, ref, set, onValue, DatabaseReference } from 'firebase/database';
 
-export const firebaseConfig = {
-  apiKey: "AIzaSyDibpkuzUookkbMVIoHqe_rYu1umY1qF-4",
-  authDomain: "data-b93ed.firebaseapp.com",
-  databaseURL: "https://data-b93ed-default-rtdb.firebaseio.com",
-  projectId: "data-b93ed",
-  storageBucket: "data-b93ed.appspot.com",
-  messagingSenderId: "218236841715",
-  appId: "1:218236841715:web:e96bfd3174b08438701186"
+// Your web app's Firebase configuration
+const firebaseConfig = {
+  apiKey: "AIzaSyBPqwi4EA0Ta746PiNfkmdHaJFikwFJJFA",
+  authDomain: "rfidproject-e2225.firebaseapp.com",
+  databaseURL: "https://rfidproject-e2225-default-rtdb.firebaseio.com",
+  projectId: "rfidproject-e2225",
+  storageBucket: "rfidproject-e2225.firebasestorage.app",
+  messagingSenderId: "880640517617",
+  appId: "1:880640517617:web:bb11c0c44aec8cb968d050"
 };
 
 const app = initializeApp(firebaseConfig);

@@ -6,7 +6,6 @@ import {
   ChevronLeft, Menu, PieChart, Settings, LogOut, Wallet, Users, HandCoins,
   ChevronDown, LucideIcon, Sprout, UserCog, Calculator,
 } from 'lucide-react';
-import { ThemeToggle } from '@/components/ThemeToggle';
 import { useState, useEffect, useMemo } from 'react';
 import { cn } from '@/lib/utils';
 import { useFarm } from '@/contexts/FarmContext';
@@ -283,7 +282,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 <p className="text-[10px] text-muted-foreground truncate">{user?.email}</p>
               </div>
             </div>
-            <ThemeToggle />
+            
             <Button variant="ghost" size="sm" onClick={logout} className="h-9 rounded-xl text-muted-foreground hover:text-destructive hover:bg-destructive/10">
               <LogOut className="h-4 w-4 md:mr-1.5" />
               <span className="hidden md:inline">Logout</span>
