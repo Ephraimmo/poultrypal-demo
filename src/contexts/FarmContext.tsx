@@ -36,32 +36,35 @@ interface FarmContextType {
   envAlerts: EnvironmentAlert[];
   setEnvAlerts: (v: EnvironmentAlert[] | ((p: EnvironmentAlert[]) => EnvironmentAlert[])) => void;
   loaded: boolean;
+  /** First Firebase read error, if the database refused or could not serve the data. */
+  error: string | null;
 }
 
 const FarmContext = createContext<FarmContextType | undefined>(undefined);
 
 export function FarmProvider({ children }: { children: ReactNode }) {
-  const [batches, setBatches, batchesLoaded] = useFirebaseSync<Batch[]>('batches', []);
-  const [mortality, setMortality, mortalityLoaded] = useFirebaseSync<MortalityRecord[]>('mortality', []);
-  const [mortalityResells, setMortalityResells, mortalityResellsLoaded] = useFirebaseSync<MortalityResell[]>('mortalityResells', []);
-  const [sales, setSales, salesLoaded] = useFirebaseSync<SaleRecord[]>('sales', []);
-  const [collections, setCollections, collectionsLoaded] = useFirebaseSync<PaymentCollection[]>('collections', []);
-  const [feed, setFeed, feedLoaded] = useFirebaseSync<FeedRecord[]>('feed', []);
-  const [health, setHealth, healthLoaded] = useFirebaseSync<HealthRecord[]>('health', []);
-  const [expenses, setExpenses, expensesLoaded] = useFirebaseSync<ExpenseRecord[]>('expenses', []);
-  const [environment, setEnvironment, envLoaded] = useFirebaseSync<EnvironmentRecord[]>('environment', []);
-  const [feedSettings, setFeedSettings, feedSettingsLoaded] = useFirebaseSync<FeedSetting[]>('feedSettings', []);
-  const [weightRecords, setWeightRecords, weightLoaded] = useFirebaseSync<WeightRecord[]>('weightRecords', []);
-  const [buyers, setBuyers, buyersLoaded] = useFirebaseSync<Buyer[]>('buyers', []);
-  const [advances, setAdvances, advancesLoaded] = useFirebaseSync<AdvancePayment[]>('advances', []);
-  const [harvests, setHarvests, harvestsLoaded] = useFirebaseSync<HarvestRecord[]>('harvests', []);
-  const [environments, setEnvironments, environmentsLoaded] = useFirebaseSync<Environment[]>('environments', []);
-  const [envAlerts, setEnvAlerts, envAlertsLoaded] = useFirebaseSync<EnvironmentAlert[]>('envAlerts', []);
+  const [batches, setBatches, batchesLoaded, batchesError] = useFirebaseSync<Batch[]>('batches', []);
+  const [mortality, setMortality, mortalityLoaded, mortalityError] = useFirebaseSync<MortalityRecord[]>('mortality', []);
+  const [mortalityResells, setMortalityResells, mortalityResellsLoaded, mortalityResellsError] = useFirebaseSync<MortalityResell[]>('mortalityResells', []);
+  const [sales, setSales, salesLoaded, salesError] = useFirebaseSync<SaleRecord[]>('sales', []);
+  const [collections, setCollections, collectionsLoaded, collectionsError] = useFirebaseSync<PaymentCollection[]>('collections', []);
+  const [feed, setFeed, feedLoaded, feedError] = useFirebaseSync<FeedRecord[]>('feed', []);
+  const [health, setHealth, healthLoaded, healthError] = useFirebaseSync<HealthRecord[]>('health', []);
+  const [expenses, setExpenses, expensesLoaded, expensesError] = useFirebaseSync<ExpenseRecord[]>('expenses', []);
+  const [environment, setEnvironment, envLoaded, environmentError] = useFirebaseSync<EnvironmentRecord[]>('environment', []);
+  const [feedSettings, setFeedSettings, feedSettingsLoaded, feedSettingsError] = useFirebaseSync<FeedSetting[]>('feedSettings', []);
+  const [weightRecords, setWeightRecords, weightLoaded, weightRecordsError] = useFirebaseSync<WeightRecord[]>('weightRecords', []);
+  const [buyers, setBuyers, buyersLoaded, buyersError] = useFirebaseSync<Buyer[]>('buyers', []);
+  const [advances, setAdvances, advancesLoaded, advancesError] = useFirebaseSync<AdvancePayment[]>('advances', []);
+  const [harvests, setHarvests, harvestsLoaded, harvestsError] = useFirebaseSync<HarvestRecord[]>('harvests', []);
+  const [environments, setEnvironments, environmentsLoaded, environmentsError] = useFirebaseSync<Environment[]>('environments', []);
+  const [envAlerts, setEnvAlerts, envAlertsLoaded, envAlertsError] = useFirebaseSync<EnvironmentAlert[]>('envAlerts', []);
 
   const loaded = batchesLoaded && mortalityLoaded && mortalityResellsLoaded && salesLoaded && collectionsLoaded && feedLoaded && healthLoaded && expensesLoaded && envLoaded && feedSettingsLoaded && weightLoaded && buyersLoaded && advancesLoaded && harvestsLoaded && environmentsLoaded && envAlertsLoaded;
+  const error = [batchesError, mortalityError, mortalityResellsError, salesError, collectionsError, feedError, healthError, expensesError, environmentError, feedSettingsError, weightRecordsError, buyersError, advancesError, harvestsError, environmentsError, envAlertsError].find(Boolean) ?? null;
 
   return (
-    <FarmContext.Provider value={{ batches, setBatches, mortality, setMortality, mortalityResells, setMortalityResells, sales, setSales, collections, setCollections, feed, setFeed, health, setHealth, expenses, setExpenses, environment, setEnvironment, feedSettings, setFeedSettings, weightRecords, setWeightRecords, buyers, setBuyers, advances, setAdvances, harvests, setHarvests, environments, setEnvironments, envAlerts, setEnvAlerts, loaded }}>
+    <FarmContext.Provider value={{ batches, setBatches, mortality, setMortality, mortalityResells, setMortalityResells, sales, setSales, collections, setCollections, feed, setFeed, health, setHealth, expenses, setExpenses, environment, setEnvironment, feedSettings, setFeedSettings, weightRecords, setWeightRecords, buyers, setBuyers, advances, setAdvances, harvests, setHarvests, environments, setEnvironments, envAlerts, setEnvAlerts, loaded, error }}>
       {children}
     </FarmContext.Provider>
   );

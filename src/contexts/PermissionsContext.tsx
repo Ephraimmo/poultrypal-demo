@@ -8,23 +8,6 @@ import {
 } from '@/lib/userProfiles';
 import { hasPermission, type Action, type Module, type UserProfile } from '@/lib/permissions';
 
-function demoAdminProfile(uid: string, email: string): UserProfile {
-  const now = Date.now();
-  return {
-    uid,
-    fullName: 'Demo Administrator',
-    email,
-    username: 'demo',
-    role: 'Administrator',
-    active: true,
-    permissions: {},
-    flockIds: 'all',
-    isAdmin: true,
-    createdAt: now,
-    updatedAt: now,
-  };
-}
-
 interface PermissionsContextValue {
   profile: UserProfile | null;
   loading: boolean;
@@ -51,16 +34,8 @@ export function PermissionsProvider({ children }: { children: ReactNode }) {
     const email = user.email || '';
     setLoading(true);
 
-    // Demo mode must render immediately. Embedded/static previews often allow
-    // Firebase Auth but block or indefinitely delay Realtime Database sockets.
-    if (user.uid === 'local-demo' || email.toLowerCase() === 'demo@farm.com') {
-      setProfile(demoAdminProfile(user.uid, email));
-      setLoading(false);
-      return () => {
-        mounted = false;
-      };
-    }
-
+    // Every account, including the demo login, reads its profile from Firebase
+    // so permissions are identical in every browser.
     (async () => {
       try {
         const p = await ensureProfileFor({
@@ -89,12 +64,7 @@ export function PermissionsProvider({ children }: { children: ReactNode }) {
       } catch (error) {
         if (!mounted) return;
         console.error('Could not load the user profile:', error);
-        // Let the documented demo account remain usable when RTDB is blocked
-        // by the live-preview environment. Never grant this fallback to other
-        // accounts.
-        setProfile(email.toLowerCase() === 'demo@farm.com'
-          ? demoAdminProfile(user.uid, email)
-          : null);
+        setProfile(null);
         setLoading(false);
       }
     })();

@@ -30,9 +30,13 @@ export default function LoginPage() {
       await login(email, password);
     } catch (loginError) {
       const code = (loginError as { code?: string })?.code;
+      const message = (loginError as { message?: string })?.message || '';
+      const unreachable = code === 'auth/network-request-failed' || message.includes('timed out');
       setError(code === 'auth/account-disabled'
         ? 'This account has been disabled by an administrator. Contact your administrator to restore access.'
-        : 'Invalid email or password. Try the demo credentials below.');
+        : unreachable
+          ? 'Could not reach the login server. Check your internet connection and try again.'
+          : 'Invalid email or password. Try the demo credentials below.');
     } finally {
       setLoading(false);
     }

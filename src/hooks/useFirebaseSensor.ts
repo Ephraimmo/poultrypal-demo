@@ -1,7 +1,5 @@
 import { useEffect, useState } from 'react';
 import { db, ref, onValue } from '@/lib/firebase';
-import { useAuth } from '@/contexts/AuthContext';
-import environmentSnapshot from '@/data/firebase-environment-snapshot.json';
 
 export interface SensorReading {
   temperature: number | null;
@@ -9,9 +7,11 @@ export interface SensorReading {
   updatedAt: number | null;
 }
 
+const EMPTY_READING: SensorReading = { temperature: null, humidity: null, updatedAt: null };
+
 /** Firebase RTDB keys cannot contain . # $ [ ] /. Replace them with `_`. */
 export function sanitizeSensorSegment(v: string): string {
-  return v.trim().replace(/[.#$\[\]/]/g, '_');
+  return v.trim().replace(/[.#$[\]/]/g, '_');
 }
 
 export function defaultSensorPathFor(name: string): string {
@@ -20,41 +20,15 @@ export function defaultSensorPathFor(name: string): string {
 
 /**
  * Subscribe to a Firebase RTDB node returning `{ temperature, humidity }`.
- * Emits live updates whenever the sensor node changes.
+ * Emits live updates whenever the sensor node changes. Readings always come
+ * from Firebase, never from data bundled with the app.
  */
 export function useFirebaseSensor(path: string | null | undefined): SensorReading {
-  const { user } = useAuth();
-  const isDemo = user?.email?.toLowerCase() === 'demo@farm.com';
-  const snapshotReading = path
-    ? (environmentSnapshot.sensors as Record<string, { temperature?: number; humidity?: number }>)[path]
-    : undefined;
-  const [reading, setReading] = useState<SensorReading>(() => snapshotReading
-    ? {
-        temperature: Number(snapshotReading.temperature),
-        humidity: Number(snapshotReading.humidity),
-        updatedAt: Date.now(),
-      }
-    : { temperature: null, humidity: null, updatedAt: null });
+  const [reading, setReading] = useState<SensorReading>(EMPTY_READING);
 
   useEffect(() => {
-    if (!path) {
-      setReading({ temperature: null, humidity: null, updatedAt: null });
-      return;
-    }
-
-    // The downloadable demo uses the freshly captured Firebase snapshot so an
-    // embedded viewer cannot leave sensor cards empty when RTDB streams are blocked.
-    if (isDemo) {
-      const saved = (environmentSnapshot.sensors as Record<string, { temperature?: number; humidity?: number }>)[path];
-      setReading(saved
-        ? {
-            temperature: Number.isFinite(Number(saved.temperature)) ? Number(saved.temperature) : null,
-            humidity: Number.isFinite(Number(saved.humidity)) ? Number(saved.humidity) : null,
-            updatedAt: Date.now(),
-          }
-        : { temperature: null, humidity: null, updatedAt: null });
-      return;
-    }
+    setReading(EMPTY_READING);
+    if (!path) return;
 
     const r = ref(db, path);
     const unsub = onValue(r, snap => {
@@ -74,7 +48,7 @@ export function useFirebaseSensor(path: string | null | undefined): SensorReadin
       setReading({ temperature: null, humidity: null, updatedAt: Date.now() });
     });
     return () => unsub();
-  }, [path, isDemo]);
+  }, [path]);
 
   return reading;
 }

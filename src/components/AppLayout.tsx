@@ -75,7 +75,7 @@ const GROUP_STORAGE_KEY = 'nav:openGroups';
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
-  const { loaded } = useFarm();
+  const { loaded, error: dataError } = useFarm();
   const { user, logout } = useAuth();
   const { can, profile } = usePermissions();
   const location = useLocation();
@@ -290,7 +290,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           </div>
         </header>
         <div className="app-content w-full max-w-[1680px] mx-auto p-4 md:p-7 lg:p-8 fade-in">
-          {loaded ? children : <LoadingScreen />}
+          {loaded ? children : <LoadingScreen error={dataError} />}
         </div>
       </main>
     </div>

@@ -62,9 +62,6 @@ import { usePermissions } from '@/contexts/PermissionsContext';
 import { useFarm } from '@/contexts/FarmContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { authErrorMessage, createAuthUser, sendResetEmail } from '@/lib/authAdmin';
-import userManagementSnapshot from '@/data/firebase-user-management-snapshot.json';
-
-const snapshotProfiles = userManagementSnapshot.profiles as UserProfile[];
 
 function emptyProfile(): UserProfile {
   return {
@@ -99,12 +96,9 @@ export default function UserManagementPage() {
   const [resetError, setResetError] = useState('');
 
   useEffect(() => {
-    // Every account — including the demo login — reads and writes real RTDB
-    // profiles so users created here survive sign-out. The bundled snapshot is
-    // only a fallback when the database has no profiles at all.
-    return subscribeProfiles((list) => {
-      setProfiles(list.length ? list : [...snapshotProfiles]);
-    });
+    // Every account — including the demo login — reads and writes the real RTDB
+    // profiles, so the user list is the same in every browser.
+    return subscribeProfiles(setProfiles);
   }, []);
 
 

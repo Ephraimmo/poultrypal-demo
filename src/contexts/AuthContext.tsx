@@ -13,9 +13,17 @@ import { db, ref } from '@/lib/firebase';
 const app = getApps()[0];
 const auth = getAuth(app);
 
-const DEMO_EMAIL = 'demo@farm.com';
-const DEMO_PASSWORD = '123456';
-const DEMO_SESSION_KEY = 'poultrypro-demo-session';
+/**
+ * Older builds could open the demo account as a browser-only "local" session
+ * that never talked to Firebase, so each browser showed its own data. Remove
+ * any such saved session so every login is a real Firebase sign-in.
+ */
+const LEGACY_LOCAL_DEMO_SESSION_KEY = 'poultrypro-demo-session';
+try {
+  localStorage.removeItem(LEGACY_LOCAL_DEMO_SESSION_KEY);
+} catch {
+  // Storage can be disabled in some embedded viewers; nothing to clean up then.
+}
 
 interface AuthContextType {
   user: User | null;
@@ -25,23 +33,6 @@ interface AuthContextType {
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
-function readDemoSession(): boolean {
-  try {
-    return localStorage.getItem(DEMO_SESSION_KEY) === 'true';
-  } catch {
-    return false;
-  }
-}
-
-function saveDemoSession(active: boolean): void {
-  try {
-    if (active) localStorage.setItem(DEMO_SESSION_KEY, 'true');
-    else localStorage.removeItem(DEMO_SESSION_KEY);
-  } catch {
-    // Some embedded viewers disable storage. The in-memory session still works.
-  }
-}
 
 export function disabledAccountError(): Error & { code: string } {
   return Object.assign(
@@ -78,41 +69,10 @@ async function isAccountDisabled(uid: string): Promise<boolean> {
   }
 }
 
-/**
- * The hosted Firebase account remains the primary demo login. This local user
- * is a deliberate fallback for downloaded previews, file:// URLs, and offline
- * development where Firebase Auth may be blocked by the preview sandbox.
- */
-function localDemoUser(): User {
-  return {
-    uid: 'local-demo',
-    email: DEMO_EMAIL,
-    displayName: 'Demo Administrator',
-    emailVerified: true,
-    isAnonymous: false,
-    phoneNumber: null,
-    photoURL: null,
-    providerId: 'local-demo',
-    metadata: {},
-    providerData: [],
-    refreshToken: '',
-    tenantId: null,
-    delete: async () => undefined,
-    getIdToken: async () => '',
-    getIdTokenResult: async () => {
-      throw new Error('Token results are unavailable in local demo mode.');
-    },
-    reload: async () => undefined,
-    toJSON: () => ({ uid: 'local-demo', email: DEMO_EMAIL }),
-  } as unknown as User;
-}
-
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const hasSavedDemoSession = readDemoSession();
-  const localDemoRef = useRef(hasSavedDemoSession);
   const loginInProgressRef = useRef(false);
-  const [user, setUser] = useState<User | null>(hasSavedDemoSession ? localDemoUser() : null);
-  const [loading, setLoading] = useState(!hasSavedDemoSession);
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     // Never leave the whole app behind a permanent spinner if an embedded
@@ -122,11 +82,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       auth,
       async (firebaseUser) => {
         window.clearTimeout(timeout);
-        // A null Firebase session must not erase an active local demo session.
-        if (!firebaseUser && localDemoRef.current) {
-          setLoading(false);
-          return;
-        }
         // Explicit login performs its own access check before publishing the
         // authenticated user. Avoid a competing listener check/sign-out race.
         if (firebaseUser && loginInProgressRef.current) return;
@@ -144,8 +99,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       },
       () => {
         window.clearTimeout(timeout);
-        // Firebase can be unavailable in embedded/static previews. The saved
-        // local demo session can still open the app in that environment.
         setLoading(false);
       },
     );
@@ -170,20 +123,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         await signOut(auth).catch(() => undefined);
         throw disabledAccountError();
       }
-      localDemoRef.current = false;
-      saveDemoSession(false);
+      // Every account, including the demo login, must be a real Firebase
+      // session so the database serves the same data in every browser.
       setUser(credential.user);
-      setLoading(false);
-    } catch (error) {
-      // Keep the downloadable/live preview usable if Firebase is unreachable
-      // or rejects the preview's origin. Only the documented demo credentials
-      // are eligible; real users still authenticate exclusively with Firebase.
-      if ((error as { code?: string })?.code === 'auth/account-disabled') throw error;
-      if (email !== DEMO_EMAIL || password !== DEMO_PASSWORD) throw error;
-
-      localDemoRef.current = true;
-      saveDemoSession(true);
-      setUser(localDemoUser());
       setLoading(false);
     } finally {
       loginInProgressRef.current = false;
@@ -191,8 +133,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const logout = async () => {
-    localDemoRef.current = false;
-    saveDemoSession(false);
     setUser(null);
     await signOut(auth).catch(() => undefined);
   };

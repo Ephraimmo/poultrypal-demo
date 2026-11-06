@@ -15,6 +15,10 @@ import MortalityResellDialog from '@/components/MortalityResellDialog';
 import { useCan } from '@/contexts/PermissionsContext';
 import { Can } from '@/components/Can';
 import { useFlockScope } from '@/hooks/useFlockScope';
+import { useFirebaseSync } from '@/hooks/useFirebaseSync';
+
+/** Older builds kept custom causes only in this browser; they are moved to Firebase once. */
+const LEGACY_CUSTOM_CAUSES_KEY = 'mortality-custom-causes';
 
 const DEFAULT_CAUSES = ['Disease', 'Heat Stress', 'Predator', 'Injury', 'Unknown'];
 
@@ -59,9 +63,8 @@ export default function MortalityPage() {
   const [breakdownOpen, setBreakdownOpen] = useState(false);
   const [selectedBreakdownRecord, setSelectedBreakdownRecord] = useState<MortalityRecord | null>(null);
   const [resellRecord, setResellRecord] = useState<MortalityRecord | null>(null);
-  const [customCauses, setCustomCauses] = useState<string[]>(() => {
-    try { return JSON.parse(localStorage.getItem('mortality-custom-causes') || '[]'); } catch { return []; }
-  });
+  // Custom causes live in Firebase so every browser and every user sees the same list.
+  const [customCauses, setCustomCauses, customCausesLoaded] = useFirebaseSync<string[]>('mortalityCustomCauses', []);
   const [addingCustomCause, setAddingCustomCause] = useState(false);
   const [newCause, setNewCause] = useState('');
   const [formError, setFormError] = useState('');
@@ -123,8 +126,19 @@ export default function MortalityPage() {
 
   const persistCustomCauses = (next: string[]) => {
     setCustomCauses(next);
-    try { localStorage.setItem('mortality-custom-causes', JSON.stringify(next)); } catch { /* ignore */ }
   };
+
+  // One-time move of causes saved by older builds in this browser into Firebase.
+  useEffect(() => {
+    if (!customCausesLoaded) return;
+    let local: unknown = [];
+    try { local = JSON.parse(localStorage.getItem(LEGACY_CUSTOM_CAUSES_KEY) || '[]'); } catch { return; }
+    if (!Array.isArray(local)) return;
+    const missing = local.filter((c): c is string => typeof c === 'string' && c.trim() !== '' && !customCauses.includes(c));
+    if (missing.length) setCustomCauses(prev => [...prev, ...missing.filter(c => !prev.includes(c))]);
+    try { localStorage.removeItem(LEGACY_CUSTOM_CAUSES_KEY); } catch { /* ignore */ }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [customCausesLoaded]);
 
   const handleAddCustomCause = () => {
     const trimmed = newCause.trim();
